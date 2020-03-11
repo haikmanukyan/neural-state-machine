@@ -30,7 +30,7 @@ class Watcher:
         for key in self.scalars:
             if key in self.var_dict:
                 self.viz.line(
-                    [self.var_dict[key]],
+                    [self.var_dict[key].item()],
                     [step],
                     win = key,
                     update='append'

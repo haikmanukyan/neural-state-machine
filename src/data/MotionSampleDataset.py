@@ -7,7 +7,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 from tqdm import tqdm
 
-class MotionDataset(Dataset):
+class MotionSampleDataset(Dataset):
     """Motion dataset."""
 
     def __init__(self, root_dir, preload = False):
@@ -58,5 +58,5 @@ class MotionDataset(Dataset):
         return sample
 
 if __name__ == "__main__":
-    dataset = MotionDataset('../../data')
+    dataset = MotionSampleDataset('../../data')
     print (dataset[19])

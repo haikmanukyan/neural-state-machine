@@ -11,7 +11,6 @@ import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
 
-from src.data import MotionDataset
 from src.data import MotionChunkDataset
 from src.utils.watcher import Watcher
 from src.nn.nets import NSM
@@ -38,7 +37,7 @@ def train_epoch(epoch, model, dataloader, optimizer, optimize_step = 4):
             optimizer.zero_grad()
         
         pbar.set_description(f'[{epoch}] Loss: {train_loss.item()}, Acc: {train_accuracy}')
-        # watcher.update(global_step, locals())
+        watcher.update(global_step, locals())
 
 def validate(epoch, model, dataloader):
     model.eval()
@@ -50,7 +49,7 @@ def validate(epoch, model, dataloader):
             output_predicted = model(Fr, G, E, I, Ga)
             test_loss += criterion(output_predicted, output)
 
-        # watcher.update(epoch, locals())
+        watcher.update(epoch, locals())
         
     return test_loss
 
@@ -84,19 +83,26 @@ if __name__ == "__main__":
 
     train_loader = DataLoader(
         MotionChunkDataset(
-            'data/data16', 
+            'data/data32/train', 
             input_shape = 5437,
-            num_samples = 741286,
-            num_chunks = 4
+            num_samples = 741286 - 2 * 32768,
+            num_chunks = 4,
+            shuffle = True
         ),
         batch_size,
     )
 
-    # val_loader = DataLoader(
-    #     MotionDataset('data'),
-    #     batch_size,
-    # )
-    # print(len(val_loader.dataset))
+    val_loader = DataLoader(
+        MotionChunkDataset(
+            'data/data32/test', 
+            input_shape = 5437,
+            num_samples = 2 * 32768,
+            num_chunks = 2,
+            shuffle = True
+        ),
+        batch_size,
+    )
+    print(len(val_loader.dataset))
 
     # Load model
     start_epoch = 0
@@ -106,17 +112,17 @@ if __name__ == "__main__":
         motionnet_shape,
         gatingnet_shape,
         n_experts
-    ).cuda().half()
+    ).cuda()
     
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters())
     watcher = Watcher(None)
 
     watcher.add_scalar("train_loss")
-    # watcher.add_scalar("test_loss")
+    watcher.add_scalar("test_loss")
 
     for epoch in range(start_epoch, epochs):
         train_epoch(epoch, model, train_loader, optimizer)
-        # test_loss = validate(epoch, model, val_loader)
+        test_loss = validate(epoch, model, val_loader)
         save(model, save_dir, 0, epoch)
 

@@ -8,12 +8,13 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 import numpy as np
 from src.nn import MotionNet, GatingNet
-from src.data import MotionDataset
 
 
-# X = torch.zeros([10,20,30])
-# Y = torch.zeros([10,30])
 
+X = torch.zeros([10,20,30])
+Y = torch.zeros([10,30])
+
+print (locals())
 
 # print ((X * Y[:,None,:]).shape)
 

@@ -46,34 +46,26 @@ class InputFrame:
         self.n_actions = 8
         self.n_interaction = 512 # for later
 
-        joint_data = data[:self.n_bones * 12].reshape(-1, 3) # separate XYZ
-        trajectory_data = data[276:432].reshape(-1, 4 + self.n_actions) # 2d pos, dir + actions
-        goal_data = data[432:601].reshape(-1, 6 + self.n_actions - 1) # 3d pos, dir + actions (-climb)
-        interaction_data = data[2635:4683].reshape(-1,4)
 
-        self.joint_positions = joint_data[::4]
-        self.forward = joint_data[1::4]
-        self.up = joint_data[2::4]
-        self.velocity = joint_data[3::4]
+        joint_data = np.split(data[:276].reshape(-1, 12), [3,6,9], 1)
+        self.joint_positions, self.joint_forward, self.joint_up, self.joint_velocity = joint_data
 
-        self.trajectory_points = trajectory_data[:,:2]
-        self.trajectory_dir = trajectory_data[:,2:4]
-        self.trajectory_action = trajectory_data[:,4:]
-
-        self.goal_positions = goal_data[:,:3]
-        self.goal_directions = goal_data[:,3:6]
-        self.goal_actions = goal_data[:,6:]
-
+        trajectory_data = np.split(data[276:432].reshape(-1, 12), [2,4], 1)
+        self.trajectory_points, self.trajectory_dir, self.trajectory_action = trajectory_data
+        
+        goal_data = np.split(data[432:601].reshape(-1, 13), [3,6], 1) # 3d pos, dir + actions (-climb)
+        self.goal_positions,self.goal_directions,self.goal_actions = goal_data
+        
+        interaction_data = np.split(data[2635:4683].reshape(-1,4), [3,], 1) # 3d points + label
+        self.interaction_points, self.interaction_occupied = interaction_data
+        self.interaction_occupied = self.interaction_occupied[:,0]
+        
         self.environment = data[601:2635]
+        self.gating = data[4683:]
 
-        self.interaction_points = interaction_data[:,:3]
-        self.interaction_occupied = interaction_data[:,3]
-
-        self.gating = data[4683:] # What is this???
 
     def draw_points(self, ax, points, size = 5, alpha = 1., linestyle = ""):
         return ax.plot(points[:,0],points[:,2],points[:,1], linestyle=linestyle, marker="o", markersize = size, alpha = alpha)[0]
-
     def update_points(self, graph, points):
         graph.set_data(points[:,0],points[:,2])
         graph.set_3d_properties(points[:,1])

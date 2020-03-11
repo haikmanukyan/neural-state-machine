@@ -1,27 +1,21 @@
 import numpy as np
 from tqdm import tqdm
 
-def process(path, save_path, chunk_size = 32768):
-    with open(path) as f:
-        i = 1
-        x = "start"
-
-        while x != "":
-            X = []
-            for _ in tqdm(range(chunk_size)):
-                x = f.readline()
-                if x == "": break
-                X.append(list(map(float, x.split(' '))))
-            
-            np.save(save_path + "/chunk%d" % i, np.array(X))
-            print ("Chunk {i} of 25 complete")
-            i += 1
-                
 
 # InputNorm = np.loadtxt('../Export/InputNorm.txt')
 # np.save("data/input_norm.npy", InputNorm)
 # OutputNorm = np.loadtxt('../Export/OutputNorm.txt')
 # np.save("data/output_norm.npy", OutputNorm)
 
-process('../Export/Input.txt', 'data/input')
-process('../Export/Output.txt', 'data/output') 
+input_txt = '/media/hayk/STORAGE/dev/repos/AI4Animation/AI4Animation/SIGGRAPH_Asia_2019/Export/Input.txt'
+output_txt = '/media/hayk/STORAGE/dev/repos/AI4Animation/AI4Animation/SIGGRAPH_Asia_2019/Export/Output.txt'
+save_path = '/media/hayk/STORAGE/dev/repos/AI4Animation/AI4Animation/SIGGRAPH_Asia_2019/Export/samples/'
+
+f_in = open(input_txt)
+f_out = open(output_txt)
+
+for i,(x,y) in tqdm(enumerate(zip(f_in, f_out))):
+    x = np.array(x.split(' ')).astype(np.float32)
+    y = np.array(y.split(' ')).astype(np.float32)
+
+    np.save(save_path + "sample_%08d.npy" % i, np.concatenate([x,y]))

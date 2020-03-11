@@ -45,45 +45,24 @@ class OutputFrame:
         self.n_interaction = 512 # for later
 
         # Bones in egocentric
+        joint_data = np.split(data[:276].reshape(-1, 12), [3,6,9], 1)
+        self.joint_positions, self.joint_forward, self.joint_up, self.joint_velocity = joint_data
+        self.joint_inverse_positions = data[276:345].reshape(-1,3)
         
         # pos dir action
-        trajectory_data = data[345:429].reshape(-1, 12)
-        self.trajectory_pos = trajectory_data[:,:2]
-        self.trajectory_dir = trajectory_data[:,2:4]
-        self.trajectory_action = trajectory_data[:,4:]
+        trajectory_data = np.split(data[345:429].reshape(-1, 12), [2,4], 1)
+        self.trajectory_points, self.trajectory_dir, self.trajectory_action = trajectory_data
+        self.trajectory_inverse_points = data[429:457].reshape(-1,2)
 
-        # pos dir
-        trajectory_inverse_data = data[429:457]
-        
-        joint_data = data[:276].reshape(-1, 4, 3).transose(1,0,2)
-        self.joint_pos, self.joint_forward, self.joint_up, self.joint_velocity = joint_data
+        # Goal        
+        goal_data = np.split(data[457:626].reshape(-1, 13), [3,6], 1)
+        self.goal_positions,self.goal_directions,self.goal_actions = goal_data
 
-
-        self.joint_pos_inverse = data[276:345].reshape(-1, 3)
-
-        trajectory_data_start = data[276:432].reshape(-1, 4 + self.n_actions) # 2d pos, dir + actions
-        goal_data = data[432:601].reshape(-1, 6 + self.n_actions - 1) # 3d pos, dir + actions (-climb)
-        interaction_data = data[2635:2635].reshape(-1,4)
-
-
-        self.trajectory_points = trajectory_data[:,:2]
-        self.trajectory_dir = trajectory_data[:,2:4]
-        self.trajectory_action = trajectory_data[:,4:]
-
-        self.goal_positions = goal_data[:,:3]
-        self.goal_directions = goal_data[:,3:6]
-        self.goal_actions = goal_data[:,6:]
-
-        self.environment = data[601:2635]
-
-        self.interaction_points = interaction_data[:,:3]
-        self.interaction_occupied = interaction_data[:,3]
-
-        self.gating = data[4683:] # What is this???
+        self.contact = data[626:631]
+        self.phase_update = data[631:]
 
     def draw_points(self, ax, points, size = 5, alpha = 1., linestyle = ""):
         return ax.plot(points[:,0],points[:,2],points[:,1], linestyle=linestyle, marker="o", markersize = size, alpha = alpha)[0]
-
     def update_points(self, graph, points):
         graph.set_data(points[:,0],points[:,2])
         graph.set_3d_properties(points[:,1])
@@ -109,31 +88,6 @@ class OutputFrame:
             np.zeros_like(self.trajectory_points[:,0]),
         )
 
-    def draw_interaction(self, ax):
-        return self.draw_points(
-            ax, 
-            self.interaction_points[self.interaction_occupied > 0]
-        )
-    def update_interaction(self, graph):
-        self.update_points(
-            graph, 
-            self.interaction_points[self.interaction_occupied > 0]
-        )
-
-    def draw_environment(self, ax):
-        points = gen_points(4, 9, 9)
-        points = points[self.environment > 0]
-        return self.draw_points(
-            ax, 
-            points, 
-            alpha = 0.1, 
-            size = 15
-        )
-    def update_environment(self, graph):
-        points = gen_points(4, 9, 9)
-        points = points[self.environment > 0]
-        self.update_points(graph, points)
-
     def draw_character(self, ax):
         return self.draw_points(ax, self.joint_positions)
     def update_character(self, graph):
@@ -143,8 +97,6 @@ class OutputFrame:
         graph = [
             self.draw_goals(ax),
             self.draw_trajectory(ax),
-            self.draw_environment(ax),
-            self.draw_interaction(ax),
             self.draw_character(ax)
         ]   
 
@@ -154,8 +106,6 @@ class OutputFrame:
         func = [
             self.update_goals,
             self.update_trajectory,
-            self.update_environment,
-            self.update_interaction,
             self.update_character
         ]
         for f,x in zip(func, graph):
