@@ -131,6 +131,7 @@ dmypy.json
 data/*
 models/*
 anim/*
+.vscode
 
 !data/InputLabels.txt
 !data/OutputLabels.txt
