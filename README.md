@@ -10,10 +10,10 @@ The paper presents a neural network based aproach for synthesizing humanoid anim
 
 
 ## Usage
-To obtain the data please contact me for now. Put the data into the data directory.
+Put the data into the data directory as a .npy file. You can use the train_test_split.py script to split it if not already.
 
 
-To train a model run the following command from the root directory:
+To train the model run the following command from the projects root directory:
 ```
 python scripts/train.py
 ```
