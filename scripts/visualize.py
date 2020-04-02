@@ -8,6 +8,7 @@ from src.data import InputFrame, OutputFrame, GatingFrame
 from src.nn.nets import NSM
 import torch
 import sys
+import argparse
 
 np.set_printoptions(precision = 3, suppress = True)
 
@@ -83,9 +84,25 @@ def update_phase(phase, phase_update):
     return clipangle(phase_new)
 
 if __name__ == "__main__":
-    # start = np.random.randint(40) * 240
-    start = 240 * 31
-    size = 240 * 6
+    parser = argparse.ArgumentParser()
+    
+    parser.add_argument("-n", type = int, default = 1, help = "Number of clips to visualize")
+    parser.add_argument("--starting-clip", default = 0, type = int, help="Index of the first clip to visualize")
+    parser.add_argument("--save-anim", action="store_true", default=False, help = "Save the animation as a gif")
+    parser.add_argument("--save-dir", type = str, default = "examples/animation.gif")
+    parser.add_argument("--predict-phase", action="store_true", default=False, help = "Use the phase predicted by the network")
+    parser.add_argument("--predict-trajectory", action="store_true", default=False, help = "Use thetrajectory predicted by the network")
+    parser.add_argument("--model-name", type=str, default = 'models/best.pt', help = "The name of the model you want to test, just give the folder name ignoring the parenthesis")
+    parser.add_argument("--phase-mult", type = float, default=1, help = "Multiply the speed of the phase update by this value. Works only when --predict-phase is on")
+
+    parser.add_argument("--show-data", action="store_true", default=False, help = "Visualize the ground truth")
+    parser.add_argument("--show-phase", action="store_true", default=False, help = "Visualize the phase")
+    parser.add_argument("--show-input", action="store_true", default=False, help = "Visualize the actual input to the network")
+    
+    args = parser.parse_args()
+
+    start = 240 * args.starting_clip
+    size = 240 * args.n
 
     # Loading
     data = np.load('data/test32.npy')[start:start+size]
@@ -104,12 +121,9 @@ if __name__ == "__main__":
     input_net_normed = input_data_normed.copy()
     output_net_normed = output_data_normed.copy()
 
-    if len(sys.argv) > 1:
-        model = torch.load(sys.argv[1]).cuda()
-    else:
-        model = torch.load('models/best4.pt').cuda()
-
+    model = torch.load(args.model_name).cuda()
     print (model)
+
     # Inference
     frame_data, goal_data, environment_data, interaction_data, gating_data, output_data_test = get_sample(input_data_normed, output_data_normed)
     phase_data = np.array([get_phase(x)[7] for x in input_data]) # Get the phase info
@@ -127,32 +141,38 @@ if __name__ == "__main__":
             trajectory = frame[276:].reshape(13, 12)
 
         else:
-            # frame,goal,environment,interaction,gating = frame_data[i],goal_data[i],environment_data[i],interaction_data[i],gating_data[i]
             frame,goal,environment,interaction,gating = frame_data[i],goal_data[i],environment_data[i],interaction_data[i],gating_data[i]
 
-            trajectory_update = output_torch[345:429].reshape(7, 12)
-            trajectory[:-1] = trajectory[1:].clone()
-            trajectory[-1] = trajectory_update[-1]
-            trajectory[-7:-1] = 0.5 * trajectory[-7:-1] + 0.5 * trajectory_update[:-1]
+            
 
-            frame[:276] = output_torch[:276] # Updated joints
-            # frame[276:] = trajectory.view(-1)
+            # Update the frame
+            frame[:276] = output_torch[:276]
+
+            if args.predict_trajectory:
+                trajectory_update = output_torch[345:429].reshape(7, 12)
+                trajectory[:-1] = trajectory[1:].clone()
+                trajectory[-1] = trajectory_update[-1]
+                trajectory[-7:-1] = 0.5 * trajectory[-7:-1] + 0.5 * trajectory_update[:-1]
+                frame[276:] = trajectory.view(-1)
+            else:
+                trajectory = frame[276:]
+            
             # goal = output_normed[457:626]
 
             # Update the phase
-            phase = update_phase(phase, output_net[i-1][631:639])
+            if args.predict_phase:            
+                phase = update_phase(phase, args.phase_mult * output_net[i-1][631:639])
             
-            # trajectory_gen_normed = input_data_normed[i][276:432] # Current input trajectory data normalized
-            trajectory_gen_normed = trajectory.flatten().cpu().detach().numpy()
-            trajectory_gen = unnormalize(trajectory_gen_normed, input_norm[0,276:432], input_norm[1,276:432]).reshape(13, 12)
+                trajectory_gen_normed = trajectory.flatten().cpu().detach().numpy()
+                trajectory_gen = unnormalize(trajectory_gen_normed, input_norm[0,276:432], input_norm[1,276:432]).reshape(13, 12)
 
-            goal_gen_normed = input_data_normed[i][432:601]
-            goal_gen = unnormalize(goal_gen_normed, input_norm[0,432:601], input_norm[1,432:601]).reshape(13, 13)
+                goal_gen_normed = input_data_normed[i][432:601]
+                goal_gen = unnormalize(goal_gen_normed, input_norm[0,432:601], input_norm[1,432:601]).reshape(13, 13)
 
-            gating_data_gen[i] = gen_gating_data(phase, trajectory_gen, goal_gen)
-            gating_data_gen_norm[i] = normalize(gating_data_gen[i], input_norm[0,4683:5437], input_norm[1,4683:5437])
-            
-            gating = torch.from_numpy(gating_data_gen_norm[i]).cuda()
+                gating_data_gen[i] = gen_gating_data(phase, trajectory_gen, goal_gen)
+                gating_data_gen_norm[i] = normalize(gating_data_gen[i], input_norm[0,4683:5437], input_norm[1,4683:5437])
+
+                gating = torch.from_numpy(gating_data_gen_norm[i]).cuda()
 
         output_torch = model(frame[None], goal[None], environment[None], interaction[None], gating[None])[0]
         
@@ -166,20 +186,31 @@ if __name__ == "__main__":
     input_data_gen[:,4683:5437] = gating_data_gen
     phase_data_gen = np.array([get_phase(x)[7] for x in input_data_gen]) # Look at the generated phase values
 
-
-    print (phase_data.shape, input_data.shape)
+    
     # Drawing
     anim = Animation()
-    anim.add_animation(input_net, InputFrame)
-    # anim.add_animation(phase_net, GatingFrame)
-    # anim.add_animation(input_data, InputFrame, "Input From Test Set")
-    # anim.add_animation(output_data, OutputFrame, "Output From Test Set")
-    # anim.add_animation(phase_data, GatingFrame, "Phase From Test Set")
-    # anim.add_animation(input_net, InputFrame, "Actual Input")
-    # anim.add_animation(output_net, OutputFrame, "Predicted Output")
-    # anim.add_animation(phase_data_gen, GatingFrame, "Predicted Phase")
-    anim.draw(110)
+    n = 1
+    if args.show_data:
+        n += 2
+        anim.add_animation(input_data, InputFrame, "Input Ground Truth")
+        anim.add_animation(output_data, OutputFrame, "Output Ground Truth")
+        if args.show_phase:
+            anim.add_animation(phase_data, GatingFrame, "Phase Ground Truth")
+            n += 1
+
+    if args.show_input:
+        anim.add_animation(input_net, InputFrame, "Actual Input")
+        n += 1
+    anim.add_animation(output_net, OutputFrame, "Predicted Output")
+    if args.show_phase:
+        anim.add_animation(phase_data_gen, GatingFrame, "Predicted Phase")
+        n += 1
+
+    w = np.ceil(np.sqrt(n))
+    h = np.ceil(n / w)
+    anim.draw(100 * h + 10 * w)
     anim.play()
     
-    anim.save("anim/example_net.gif")
+    if args.save_anim:
+        anim.save(args.save_dir)
     plt.show()

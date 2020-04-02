@@ -91,25 +91,28 @@ def load_model(model_name):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='''Use to train a network. 
+    The network will be stored in the models directory with an automatic name. 
+    Run from the project root. Remember to start visdom to see the logs! 
+    Install ipdb if you want to debug your code after keyboard interrupts''')
     # Training related args
-    parser.add_argument("--load-model", type = str, default = None)
-    parser.add_argument("--comment", type = str, default = "Batch Norm")
+    parser.add_argument("--load-model", type = str, default = None, help = "Name of the model you want to load from the models directory. Must be the folder name, ignoring the parenthesis")
+    parser.add_argument("--comment", type = str, default = "Batch Norm", help = "A description to store with the trained network")
     
-    parser.add_argument("--lr", type = float, default = 1e-3)
-    parser.add_argument("--lr-alpha", type = float, default = 0.75)
-    parser.add_argument("--batch-size", type = int, default = 1024)
-    parser.add_argument("--n-epochs", type = int, default = 100)
-    parser.add_argument("--restart-threshold", type = int, default = 10)
+    parser.add_argument("--lr", type = float, default = 1e-3, help = "Initial learning rate")
+    parser.add_argument("--lr-alpha", type = float, default = 0.75, help = "Value to multiply the learning rate with after a restart")
+    parser.add_argument("--batch-size", type = int, default = 1024, help = "Batch size")
+    parser.add_argument("--n-epochs", type = int, default = 100, help = "Number of epochs")
+    parser.add_argument("--restart-threshold", type = int, default = 10, help = "The multiplicative threshold for the gradient norm to decide restarts")
 
 
     # Network related args
-    parser.add_argument("--input-size", type = int, default=5437)
-    parser.add_argument("--n-experts", type = int, default=10)
-    parser.add_argument("--input-shape", type=str, default="432,169,2034,2048")
-    parser.add_argument("--encoders-shape", type=str, default="512,128,512,256")
-    parser.add_argument("--motionnet-shape", type=str, default="512,512,638")
-    parser.add_argument("--gatingnet-shape", type=str, default="754,128")
+    parser.add_argument("--input-size", type = int, default=5437, help = "Number of input dimensions")
+    parser.add_argument("--n-experts", type = int, default=10, help = "Number of experts")
+    parser.add_argument("--input-shape", type=str, default="432,169,2034,2048", help = "Dimensions of each part of the input (frame, goal, environment, interaction)")
+    parser.add_argument("--encoders-shape", type=str, default="512,128,512,256", help = "Dimensions of the hidden layer in each of the encoders")
+    parser.add_argument("--motionnet-shape", type=str, default="512,512,638", help = "The architecture of the motion prediction network")
+    parser.add_argument("--gatingnet-shape", type=str, default="754,128", help = "The architecture of the gating network")
 
     args = parser.parse_args()
 

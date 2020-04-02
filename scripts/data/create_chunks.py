@@ -5,7 +5,7 @@ from tqdm import tqdm
 chunk_size = 28511
 n_chunks = 26
 
-dataset_path = '/media/hayk/STORAGE/dev/repos/AI4Animation/AI4Animation/SIGGRAPH_Asia_2019/Export/samples/'
+dataset_path = 'path/to/samples/samples/'
 output_path = 'data/data32/'
 
 n_samples = len(os.listdir(dataset_path))
