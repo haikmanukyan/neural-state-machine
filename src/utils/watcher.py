@@ -10,11 +10,11 @@ class Watcher:
         self.scalars = []
         self.images = []
 
-    def add_scalar(self, name):
+    def add_scalar(self, name, display_name = None):
         self.viz.line([0],[0],name,opts=dict(title=name))
         self.scalars.append(name)
 
-    def add_image(self, name):
+    def add_image(self, name, display_name = None):
         self.viz.image(self.var_dict[name], win = name)
         self.images.append(name)
 

@@ -43,26 +43,33 @@ class OutputFrame:
         self.n_trajectory_points = 13
         self.n_actions = 8
         self.n_interaction = 512 # for later
+        self.projection = "3d"
 
         # Bones in egocentric
-        joint_data = np.split(data[:276].reshape(-1, 12), [3,6,9], 1)
-        self.joint_positions, self.joint_forward, self.joint_up, self.joint_velocity = joint_data
+        self.joint_data = np.split(data[:276].reshape(-1, 12), [3,6,9], 1)
+        self.joint_positions, self.joint_forward, self.joint_up, self.joint_velocity = self.joint_data
         self.joint_inverse_positions = data[276:345].reshape(-1,3)
         
         # pos dir action
-        trajectory_data = np.split(data[345:429].reshape(-1, 12), [2,4], 1)
-        self.trajectory_points, self.trajectory_dir, self.trajectory_action = trajectory_data
+        self.trajectory_data = np.split(data[345:429].reshape(-1, 12), [2,4], 1)
+        self.trajectory_points, self.trajectory_dir, self.trajectory_action = self.trajectory_data
         self.trajectory_inverse_points = data[429:457].reshape(-1,2)
 
         # Goal        
-        goal_data = np.split(data[457:626].reshape(-1, 13), [3,6], 1)
-        self.goal_positions,self.goal_directions,self.goal_actions = goal_data
+        self.goal_data = np.split(data[457:626].reshape(-1, 13), [3,6], 1)
+        self.goal_positions,self.goal_directions,self.goal_actions = self.goal_data
 
         self.contact = data[626:631]
         self.phase_update = data[631:]
 
-    def draw_points(self, ax, points, size = 5, alpha = 1., linestyle = ""):
-        return ax.plot(points[:,0],points[:,2],points[:,1], linestyle=linestyle, marker="o", markersize = size, alpha = alpha)[0]
+        self.bone_order = list(range(7)) + [5] + list(range(7,11)) \
+                + list(range(10,6,-1)) + [5] + list(range(11,15)) \
+                + list(range(14,10,-1)) + list(range(5,-1,-1)) \
+                    + list(range(15,19)) + list(range(18,14,-1)) + [0] \
+                        + list(range(19,23))
+
+    def draw_points(self, ax, points, size = 5, alpha = 1., linestyle = "", linewidth = 3):
+        return ax.plot(points[:,0],points[:,2],points[:,1], linestyle=linestyle, marker="o", linewidth = linewidth, markersize = size, alpha = alpha)[0]
     def update_points(self, graph, points):
         graph.set_data(points[:,0],points[:,2])
         graph.set_3d_properties(points[:,1])
@@ -89,11 +96,16 @@ class OutputFrame:
         )
 
     def draw_character(self, ax):
-        return self.draw_points(ax, self.joint_positions)
+        return self.draw_points(ax, self.joint_positions[self.bone_order], linestyle="-")
+
     def update_character(self, graph):
-        self.update_points(graph, self.joint_positions)
+        self.update_points(graph, self.joint_positions[self.bone_order])
 
     def draw(self, ax):
+        ax.set_yticklabels([])
+        ax.set_xticklabels([])
+        ax.set_zticklabels([])
+
         graph = [
             self.draw_goals(ax),
             self.draw_trajectory(ax),
