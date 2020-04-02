@@ -84,8 +84,8 @@ def update_phase(phase, phase_update):
 
 if __name__ == "__main__":
     # start = np.random.randint(40) * 240
-    start = 240 * 54
-    size = 240 * 2
+    start = 240 * 31
+    size = 240 * 6
 
     # Loading
     data = np.load('data/test32.npy')[start:start+size]
@@ -140,7 +140,7 @@ if __name__ == "__main__":
             # goal = output_normed[457:626]
 
             # Update the phase
-            phase = update_phase(phase, 2 * output_net[i-1][631:639])
+            phase = update_phase(phase, output_net[i-1][631:639])
             
             # trajectory_gen_normed = input_data_normed[i][276:432] # Current input trajectory data normalized
             trajectory_gen_normed = trajectory.flatten().cpu().detach().numpy()
@@ -170,16 +170,16 @@ if __name__ == "__main__":
     print (phase_data.shape, input_data.shape)
     # Drawing
     anim = Animation()
-    # anim.add_animation(input_data, InputFrame)
-    # anim.add_animation(phase_data, GatingFrame)
+    anim.add_animation(input_net, InputFrame)
+    # anim.add_animation(phase_net, GatingFrame)
     # anim.add_animation(input_data, InputFrame, "Input From Test Set")
     # anim.add_animation(output_data, OutputFrame, "Output From Test Set")
     # anim.add_animation(phase_data, GatingFrame, "Phase From Test Set")
-    anim.add_animation(input_net, InputFrame, "Actual Input")
-    anim.add_animation(output_net, OutputFrame, "Predicted Output")
-    anim.add_animation(phase_data_gen, GatingFrame, "Predicted Phase")
-    anim.draw(220)
+    # anim.add_animation(input_net, InputFrame, "Actual Input")
+    # anim.add_animation(output_net, OutputFrame, "Predicted Output")
+    # anim.add_animation(phase_data_gen, GatingFrame, "Predicted Phase")
+    anim.draw(110)
     anim.play()
     
-    anim.save("anim/phase_fast.gif")
+    anim.save("anim/example_net.gif")
     plt.show()
