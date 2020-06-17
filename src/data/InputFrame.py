@@ -51,6 +51,7 @@ class InputFrame:
 
 
         self.joint_data = np.split(data[:276].reshape(-1, 12), [3,6,9], 1)
+
         self.joint_positions, self.joint_forward, self.joint_up, self.joint_velocity = self.joint_data
 
         self.trajectory_data = np.split(data[276:432].reshape(-1, 12), [2,4], 1)
@@ -123,7 +124,7 @@ class InputFrame:
         return self.draw_points(
             ax, 
             points, 
-            alpha = 0.2, 
+            alpha = 0.5, 
             size = 15
         )
     def update_environment(self, graph):

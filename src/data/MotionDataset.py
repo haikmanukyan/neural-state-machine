@@ -9,6 +9,20 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 from tqdm import tqdm
 
+# Bones 276
+# Trajectory 13 * (2 + 2 + 7)
+# Goal 13 * (3 + 3 + 6)
+# Environment 2034
+# Interaction 2048
+# Garing 650
+
+A = 7
+B = 276
+T = 13 * (2 + 2 + A)
+G = 13 * (3 + 3 + A - 1)
+E = 2034
+I = 2048
+GA = 650
 
 class MotionDataset(Dataset):
     """Motion dataset."""
@@ -22,7 +36,7 @@ class MotionDataset(Dataset):
         """
         self.input_shape = input_shape
         
-        data = np.load(path)
+        data = np.load(path).astype(np.float32)
         self.input_data = data[:, :self.input_shape]
         self.output_data = data[:, self.input_shape:]
 
@@ -43,11 +57,11 @@ class MotionDataset(Dataset):
         output_data = self.output_data[idx]
         
         sample = {
-            'frame': torch.from_numpy(input_data[0:432]), # Joints + trajectory = Fr
-            'goal': torch.from_numpy(input_data[432:601]), # Goal + Action = G
-            'environment': torch.from_numpy(input_data[601:2635]), # Environment = E
-            'interaction': torch.from_numpy(input_data[2635:4683]), # INteraction = I
-            'gating': torch.from_numpy(input_data[4683:5437]), # Gating Network = Ga
+            'frame': torch.from_numpy(input_data[0:B + T]), # Joints + trajectory = Fr
+            'goal': torch.from_numpy(input_data[B + T:B + T + G]), # Goal + Action = G
+            'environment': torch.from_numpy(input_data[B+T+G:B+T+G+E]), # Environment = E
+            'interaction': torch.from_numpy(input_data[B+T+G+E:B+T+G+E+I]), # INteraction = I
+            'gating': torch.from_numpy(input_data[B+T+G+E+I:B+T+G+E+I+GA]), # Gating Network = Ga
             'output': torch.from_numpy(output_data)
         }
 

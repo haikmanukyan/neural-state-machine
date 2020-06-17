@@ -107,12 +107,12 @@ if __name__ == "__main__":
 
 
     # Network related args
-    parser.add_argument("--input-size", type = int, default=5437, help = "Number of input dimensions")
+    parser.add_argument("--input-size", type = int, default=5307, help = "Number of input dimensions")
     parser.add_argument("--n-experts", type = int, default=10, help = "Number of experts")
-    parser.add_argument("--input-shape", type=str, default="432,169,2034,2048", help = "Dimensions of each part of the input (frame, goal, environment, interaction)")
+    parser.add_argument("--input-shape", type=str, default="419,156,2034,2048", help = "Dimensions of each part of the input (frame, goal, environment, interaction)")
     parser.add_argument("--encoders-shape", type=str, default="512,128,512,256", help = "Dimensions of the hidden layer in each of the encoders")
-    parser.add_argument("--motionnet-shape", type=str, default="512,512,638", help = "The architecture of the motion prediction network")
-    parser.add_argument("--gatingnet-shape", type=str, default="754,128", help = "The architecture of the gating network")
+    parser.add_argument("--motionnet-shape", type=str, default="512,512,516", help = "The architecture of the motion prediction network")
+    parser.add_argument("--gatingnet-shape", type=str, default="650,128", help = "The architecture of the gating network")
 
     args = parser.parse_args()
 
@@ -159,7 +159,7 @@ if __name__ == "__main__":
     # Load Data
     train_loader = DataLoader(
         MotionDataset(
-            'data/train32.npy', 
+            'data/train16.npy', 
             input_shape = args.input_size,
             input_norm = np.load('data/input_norm.npy'),
             output_norm = np.load('data/output_norm.npy')
@@ -170,7 +170,7 @@ if __name__ == "__main__":
 
     val_loader = DataLoader(
         MotionDataset(
-            'data/test32.npy',
+            'data/test16.npy',
             input_shape = args.input_size,
             input_norm = np.load('data/input_norm.npy'),
             output_norm = np.load('data/output_norm.npy')

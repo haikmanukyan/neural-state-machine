@@ -55,9 +55,13 @@ class Animation:
     def play(self):
         self.anim = anim.FuncAnimation(self.fig, self.update, len(self.animations[0]), interval = 1000 / 120., blit=True)
 
+    def dump(self, path = 'data/animation.txt'):
+        pose_data = np.array([frame.joint_positions for frame in self.animations[0]])
+        np.savetxt(path, pose_data.reshape(pose_data.shape[0],-1), "%.3f")
+
     def save(self, path = 'data/animation.gif'):
         # Writer = anim.writers['ffmpeg']
         # Writer = anim.writers['imagemagick']
         # writer = Writer(fps=120, metadata=dict(artist='Me'), bitrate=1800)
         # self.anim.save('data/animation.gif', writer = writer)
-        self.anim.save(path, writer = 'imagemagick', fps = 120)
+        self.anim.save(path, writer = 'imagemagick', fps = 30)

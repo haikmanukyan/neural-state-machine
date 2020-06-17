@@ -1,7 +1,9 @@
 {
-    "python.pythonPath": "/home/hayk/.virtualenvs/ai/bin/python",
     "files.exclude": {
-        "data": true
+        "data": false
     },
-    "python.autoComplete.extraPaths": ["."]
+    "python.autoComplete.extraPaths": [
+        "."
+    ],
+    "python.pythonPath": "/home/hayk/.pyenv/versions/ai/bin/python"
 }

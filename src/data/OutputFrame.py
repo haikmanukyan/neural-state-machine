@@ -56,11 +56,11 @@ class OutputFrame:
         self.trajectory_inverse_points = data[429:457].reshape(-1,2)
 
         # Goal        
-        self.goal_data = np.split(data[457:626].reshape(-1, 13), [3,6], 1)
+        self.goal_data = np.split(data[353:509].reshape(-1, 13), [3,6], 1)
         self.goal_positions,self.goal_directions,self.goal_actions = self.goal_data
 
-        self.contact = data[626:631]
-        self.phase_update = data[631:]
+        # self.contact = data[626:631]
+        # self.phase_update = data[631:]
 
         self.bone_order = list(range(7)) + [5] + list(range(7,11)) \
                 + list(range(10,6,-1)) + [5] + list(range(11,15)) \
