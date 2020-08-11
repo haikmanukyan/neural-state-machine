@@ -14,8 +14,8 @@ from torch.utils.data import DataLoader
 from torch.nn.utils import clip_grad_norm_
 
 
-from src.data import MotionDataset
 from src.utils import *
+from src.data import MotionDataset
 from src.nn.nets import NSM
 
 

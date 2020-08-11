@@ -2,18 +2,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
 from mpl_toolkits.mplot3d import Axes3D
-from .InputFrame import InputFrame
-from .OutputFrame import OutputFrame
 
 class Animation:
     def __init__(self):
         self.animations = []
         self.titles = []
+
+    def add_frames(self, frames, title = None):
+        self.animations.append(frames)
+        self.titles.append(title)
     
     def add_animation(self, data, frame_type, title = None):
         frames = [frame_type(x) for x in data]
-        self.animations.append(frames)
-        self.titles.append(title)
+        self.add_frames(frames, title)
 
     def add_axis(self, fig, idx, frame, title = None):
         if frame.projection == "3d":

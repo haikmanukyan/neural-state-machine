@@ -1,99 +1,21 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
 import sys
 sys.path.append('.')
 
 from src.data import Animation
-from src.data import InputFrame, OutputFrame, GatingFrame
+from src.data import GatingFrame
+from src.data.SkeletonFrame import SkeletonFrame
 from src.data.ShapeManager import Data
 from src.nn.nets import NSM
+from src.utils import gating
 import torch
 import sys
 import argparse
 
 np.set_printoptions(precision = 3, suppress = True)
-
-def getangle(u,v):
-    c = np.einsum("ij,ij->i", u, v) / np.linalg.norm(u, axis = 1) / np.linalg.norm(v, axis = 1)
-    return np.rad2deg(np.arccos(np.clip(c, -1, 1)))
-
-def clipangle(x):
-    return (x + 2 * np.pi) % (2 * np.pi)
-
-def get_phase(input_data):
-    trajectory_data = input_data[B:B+T].reshape(13, TT)
-    sign = 2 * trajectory_data[:, 4] - 1
-
-    gating_data = input_data[IN-GA:].reshape(-1,2)
-    phase_sin = sign * gating_data[:,0].reshape(13, GAGA)[:,0]
-    phase_cos = sign * gating_data[:,1].reshape(13, GAGA)[:,0]
-    phase = clipangle(np.arctan2(phase_sin, phase_cos))
-    return phase
-
-def gen_gating_data(phase, trajectory_data, goal_data):
-    root_pos = np.zeros((13, 3))
-    root_pos[:,0] = trajectory_data[:,0]
-    root_pos[:,2] = trajectory_data[:,1]
-    root_dir = np.zeros((13,3))
-    root_dir[:,0] = trajectory_data[:,2]
-    root_dir[:,2] = trajectory_data[:,3]
-
-    goal_pos = goal_data[:,:3]
-    goal_pos[:,1] = 0
-    goal_dir = goal_data[:,3:6]
-    goal_dir[:, 1] = 0
-
-    dist = np.linalg.norm(goal_pos - root_pos, axis = 1)[:,None]
-    angle = getangle(goal_dir, root_dir)[:, None]
-
-    trajectory_action = 2 * trajectory_data[:,4:] - 1
-    goal_action = 2 * goal_data[:,6:] - 1
-    goal_action = goal_action.repeat(3,1)
-    goal_action[:,1::3] *= dist
-    goal_action[:,2::3] *= angle
-
-    phase = phase.repeat(GAGA)
-    X_ = np.concatenate([trajectory_action, goal_action], 1).flatten()
-    gating_data = np.stack([X_ * np.sin(phase), X_ * np.cos(phase)], 1).flatten()
-    
-    return gating_data
-
-A = 7
-B = 276
-T = 13 * (2 + 2 + A)
-TT = 2 + 2 + A
-G = 13 * (3 + 3 + A - 1)
-GG = 3 + 3 + A - 1
-E = 2034
-I = 2048
-GA = 650
-GAGA = 25
-IN = B + T + G + E + I + GA
-
-def get_sample(input_data, output_data):
-    return [
-        torch.from_numpy(input_data[:,0:B + T]).cuda(),
-        torch.from_numpy(input_data[:,B + T:B + T + G]).cuda(),
-        torch.from_numpy(input_data[:,B+T+G:B+T+G+E]).cuda(),
-        torch.from_numpy(input_data[:,B+T+G+E:B+T+G+E+I]).cuda(),
-        torch.from_numpy(input_data[:,B+T+G+E+I:B+T+G+E+I+GA]).cuda(),
-        torch.from_numpy(output_data).cuda()
-    ]
-
-def normalize(X, mean, std):
-    return (X - mean) / (1e-5 + std)
-
-def unnormalize(X, mean, std):
-    return X * std + mean
-
-def update_phase(phase, phase_update):
-    phase_new = phase.copy()
-    phase_new[:6] += 2 * np.pi * phase_update[0]
-    
-    phase_new[6:] = phase[6]
-    phase_new[6:] += 2 * np.pi * phase_update
-
-    return clipangle(phase_new)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -113,20 +35,84 @@ if __name__ == "__main__":
     parser.add_argument("--hide-output", action="store_true", default=False, help = "Do not show the output frame")
     
     args = parser.parse_args()
-
     start = 240 * args.starting_clip
     size = 240 * args.n
 
     # Loading
-    data = np.load('data/test16.npy')[start:start+size]
+    data = np.load('data/test16.npy').astype(np.float32)
+    sequences = np.loadtxt('./data/TestSequences.txt')
     input_norm = np.load('data/input_norm.npy').astype(np.float32)
     output_norm = np.load('data/output_norm.npy').astype(np.float32)
     
     # Normalize
-    input_data = data[:,:IN]
-    input_data_normed = normalize(input_data, input_norm[0], input_norm[1])
-    output_data = data[:,IN:]
-    output_data_normed = normalize(output_data, output_norm[0], output_norm[1])
+    input_data = Data(data[:,:input_norm.shape[1]], input_norm, "input", sequences)
+    output_data = Data(data[:,input_norm.shape[1]:], output_norm, "output", sequences)
+
+    clip_idx = 24
+    clip = input_data(clip_idx)
+    clip_out = output_data(clip_idx)
+
+    current = clip[0]
+
+    model = torch.load(args.model_name).cuda()
+    model.input_shape = [419,156,2034,2048,650]
+    
+    frames = []
+    predicted = Data(clip_out[0].data, output_norm, "output")
+    
+    for i in range(len(clip)):
+        if i > 0:
+            alpha = 0.
+
+            current.bones = predicted.bones
+            
+            x = current.trajectory.reshape(13,-1)
+            x -= x[7]
+            x[:-1] = x[1:]
+            x[6:] = predicted.trajectory.reshape(7,-1)
+
+            current.trajectory = alpha * current.trajectory + (1 - alpha) * x.flatten()
+            current.goal = alpha * current.goal + (1 - alpha) * predicted.goal
+
+            new_phase = None
+            new_phase = gating.get_phase(clip[i])
+            gating.update_gating(current, predicted, new_phase)
+            
+            # Set from data
+
+            # current.bones = clip[i].bones
+            # current.trajectory = clip[i].trajectory
+            current.goal = clip[i].goal
+            current.environment = clip[i].environment
+            current.interaction = clip[i].interaction
+            # current.gating = clip[i].gating
+
+
+        x = torch.from_numpy(current.normed()[None]).cuda()
+        y = model(x).cpu().detach().numpy()[0]
+        predicted.set_normed(y)
+        frames.append(SkeletonFrame(current.copy()))
+    
+    data_frames = [SkeletonFrame(clip[i]) for i in range(len(clip))]
+    anim = Animation()
+    anim.add_frames(data_frames)
+    anim.add_frames(frames)
+
+    anim.draw(120)
+    anim.play()
+
+    plt.show()
+
+'''
+    # bones, trajectory, action
+    # goal, goal_action
+    # env
+    # int
+    # GATING = phase * (action, goal_action, ga ga)
+
+    # -> normalize() after GATING
+    # right before input!
+
     
     # Placeholders for network generated data
     input_net = input_data_normed.copy()
@@ -135,7 +121,6 @@ if __name__ == "__main__":
     output_net_normed = output_data_normed.copy()
 
     model = torch.load(args.model_name).cuda()
-    print (model)
 
     # Inference
     frame_data, goal_data, environment_data, interaction_data, gating_data, output_data_test = get_sample(input_data_normed, output_data_normed)
@@ -257,3 +242,4 @@ if __name__ == "__main__":
     if args.save:
         anim.save(args.save_dir)
     plt.show()
+'''

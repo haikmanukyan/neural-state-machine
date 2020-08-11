@@ -95,9 +95,10 @@ class NSM(nn.Module):
         ):
         super(NSM, self).__init__()
 
-
+        self.input_shape = input_shape
         self.motionnet = MotionNet(input_shape, encoders_shape, motionnet_shape, n_experts)
         self.gatingnet = GatingNet(gatingnet_shape[0], gatingnet_shape[1], n_experts)
 
-    def forward(self, Fr, G, E, I, Ga):
+    def forward(self, x):
+        Fr,G,E,I,Ga = torch.split(x, self.input_shape, 1)
         return self.motionnet(Fr, G, E, I, self.gatingnet(Ga))

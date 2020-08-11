@@ -7,6 +7,7 @@ n_seq = max(seq)
 test_seq = np.random.choice(n_seq, int(0.1 * n_seq), False)
 test_seq.sort()
 
+
 test_ind = np.concatenate([np.where(seq == x)[0] for x in test_seq])
 
 
@@ -15,6 +16,10 @@ test_mask = np.zeros(len(X), np.bool)
 test_mask[test_ind] = True
 train_mask = ~test_mask
 print (sum(train_mask), sum(test_mask))
+
+
+np.savetxt('./data/TrainSequences.txt', seq[train_mask], fmt = "%i")
+np.savetxt('./data/TestSequences.txt', seq[test_mask], fmt = "%i")
 
 np.save('data/train16.npy', X[train_mask])
 np.save('data/test16.npy', X[test_mask])
