@@ -1,0 +1,66 @@
+import numpy as np
+
+class Object(object):
+    def __init__(self, points, occ):
+        self.points = points
+        self.occ = occ
+
+    def get(self, position):
+        pass
+
+class Environment(object):
+    def __init__(self, points, bounds, res):
+        self.bounds = bounds
+        self.res = res
+        self.set_map(points)
+    
+
+    def gen_points(self, size, res, layers):
+        diameter = size / float((res - 1))
+        coverage = 0.5 * diameter
+        # radius = 0.5 * np.sqrt(2) * coverage
+        points = []
+        
+
+        for y in range(layers): # height
+            for z in range(res): # radius
+                dist = z * coverage
+                arc = 2 * np.pi * dist
+                count = int(np.rint(arc / coverage))
+
+                for x in range(count): # angle
+                    degrees = x / count * 2 * np.pi
+                    coords = [dist * np.cos(degrees), y * coverage, dist * np.sin(degrees)]
+
+                    points.append(self.grid(coords))
+        return points
+
+    def grid(self, coords):
+        x = int(coords[0] * self.bounds[0][1] + self.bounds[0][0]) * self.res
+        y = int(coords[1] * self.bounds[1][1] + self.bounds[1][0]) * self.res
+        z = int(coords[2] * self.bounds[2][1] + self.bounds[2][0]) * self.res
+        return self.map[x,y,z]
+
+    def set_map(self, points):
+        self.map = np.zeros((self.res,self.res,self.res))
+
+    def get(self, position):
+        pass
+
+class World(object):
+    def __init__(self, environment, objects):
+        self.environment = environment
+        self.objects = objects
+
+    def get(self, position, object_idx = None):
+        obj = None if object_idx is None else self.objects[object_idx]
+        obj = None if obj is None else obj.get(position)
+        env = self.environment.get(position)
+        
+        return env, obj
+
+
+points = np.zeros(2038)
+bounds = [[-1.,1.],[-1.,1.],[-1.,1.]]
+
+env = Environment(points, bounds, 1000)
