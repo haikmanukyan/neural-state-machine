@@ -132,6 +132,7 @@ data/*
 models/*
 anim/*
 .vscode
+.vscode/*
 
 !data/InputLabels.txt
 !data/OutputLabels.txt
