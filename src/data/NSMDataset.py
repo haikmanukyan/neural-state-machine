@@ -31,30 +31,35 @@ def clip_seq(seq, max_len = 500, min_len = 100):
     return seq_
 
 class NSMRawDataset:
-    def __init__(self, clip = True, to_torch = False):        
-        self.train_data = np.load(DATA_DIR + '/train16.npy')
+    def __init__(self, clip = True, to_torch = False, only_test = False):        
+        if not only_test:
+            self.train_data = np.load(DATA_DIR + '/train16.npy')
         self.test_data = np.load(DATA_DIR + '/test16.npy')
 
         if to_torch:
-            self.train_data = torch.from_numpy(self.train_data)
+            if not only_test:
+                self.train_data = torch.from_numpy(self.train_data)
             self.test_data = torch.from_numpy(self.test_data)
 
         if clip:
-            train_sequences = np.loadtxt(DATA_DIR + '/TrainSequencesClipped.txt', dtype = np.int32)
+            if not only_test:
+                train_sequences = np.loadtxt(DATA_DIR + '/TrainSequencesClipped.txt', dtype = np.int32)
             test_sequences = np.loadtxt(DATA_DIR + '/TestSequencesClipped.txt', dtype = np.int32)
         else:
-            train_sequences = np.loadtxt(DATA_DIR + '/TrainSequences.txt', dtype = np.int32)
+            if not only_test:
+                train_sequences = np.loadtxt(DATA_DIR + '/TrainSequences.txt', dtype = np.int32)
             test_sequences = np.loadtxt(DATA_DIR + '/TestSequences.txt', dtype = np.int32)
 
-        train_sequences = [np.where(train_sequences == i)[0] for i in np.unique(train_sequences)]
+        if not only_test:
+            train_sequences = [np.where(train_sequences == i)[0] for i in np.unique(train_sequences)]
+            self.train_clips = [self.train_data[i] for i in train_sequences]
+        
         test_sequences = [np.where(test_sequences == i)[0] for i in np.unique(test_sequences)]
+        self.test_clips = [self.test_data[i] for i in test_sequences]
 
         if False:
             train_sequences = clip_seq(train_sequences)
             test_sequences = clip_seq(test_sequences)
-
-        self.train_clips = [self.train_data[i] for i in train_sequences]
-        self.test_clips = [self.test_data[i] for i in test_sequences]
 
         self.input_norm = np.load(DATA_DIR + '/input_norm.npy')
         self.output_norm = np.load(DATA_DIR + '/output_norm.npy')

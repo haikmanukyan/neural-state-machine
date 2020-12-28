@@ -5,5 +5,5 @@
     "python.autoComplete.extraPaths": [
         "."
     ],
-    "python.pythonPath": "C:\\Users\\haikm\\envs\\ai7\\Scripts\\python.exe"
+    "python.pythonPath": "/home/hayk/.virtualenvs/ai/bin/python"
 }
