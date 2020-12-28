@@ -19,8 +19,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
-def draw_ground():
-    size = 10
+def draw_ground(size = 10):
     glBegin(GL_QUADS)
     glColor3fv([0,1,0])
     glVertex(-size,0,-size)
@@ -31,7 +30,7 @@ def draw_ground():
 
 def draw_cube(box):
     glPushMatrix()
-
+    
     glTranslatef(*box.transform.position())
     glTranslatef(* (np.array(box.size) * 0.5))
 
@@ -41,7 +40,7 @@ def draw_cube(box):
     glScalef(*box.size)
 
     glColor4f(1.,1.,0,0.5)
-    glutSolidCube(1.)
+    glutSolidCube(1.0)
     glColor4f(1.,0.,0,0.5)
     glutWireCube(1.)
 
@@ -52,6 +51,8 @@ def draw_sphere(center, radius, color = [1,0,0]):
     glTranslatef(*center)
 
     glColor3f(*color)
+    # quadric = gluNewQuadric()
+    # gluSphere(quadric, radius, 6, 6)
     glutWireSphere(radius, 6, 4)
     glPopMatrix()
 
@@ -110,6 +111,7 @@ def draw_world(world):
     draw_ground()
     for box in world.env.boxes:
         draw_cube(box)
+    mouse_pos = raycast()
 
     draw_collider(env_points, data.environment)
     draw_skeleton(data.bone_position)
@@ -118,6 +120,8 @@ def draw_world(world):
     traj = np.zeros((len(data.trajectory_position), 3))
     traj[:,[0,2]] = data.trajectory_position
     draw_path(traj, [1,0,1])
+    
+    return mouse_pos
 
 def raycast():
     m_x, m_y = pg.mouse.get_pos()
@@ -125,6 +129,49 @@ def raycast():
     m_z = glReadPixels(m_x, m_y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT)
 
     pos = gluUnProject(m_x,m_y,m_z)
-    draw_sphere(pos, 0.1)
+    draw_sphere(pos, 0.1, (0,0,1))
 
     return pos
+
+if __name__ == "__main__":
+    from OpenGL.GLUT import *
+    from time import sleep
+
+    
+    glutInit()
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
+    glutCreateWindow("Window")
+
+    quadric=gluNewQuadric()
+    gluQuadricNormals(quadric, GLU_SMOOTH)
+    gluQuadricTexture(quadric, GL_TRUE)
+    
+    animationAngle = 0.0
+    frameRate = 25
+
+    def doAnimationStep( ):
+        global animationAngle
+        global frameRate
+        animationAngle += 1
+        while animationAngle > 360:
+            animationAngle -= 360
+        sleep( 1 / float( frameRate ) )
+        glutPostRedisplay( )
+
+    def display():
+        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT )
+        glMatrixMode( GL_MODELVIEW )
+        glLoadIdentity( )
+        glColor3f( 1, 1, 1 )
+        glRotatef( animationAngle, 0, 0, 1 )
+        glBegin( GL_QUADS )
+        glVertex3f( -0.5, 0.5, 0 )
+        glVertex3f( -0.5, -0.5, 0 )
+        glVertex3f( 0.5, -0.5, 0 )
+        glVertex3f( 0.5, 0.5, 0 )
+        glEnd(  )
+        glutSwapBuffers( )
+
+    glutDisplayFunc(display)
+    glutIdleFunc( doAnimationStep )
+    glutMainLoop()

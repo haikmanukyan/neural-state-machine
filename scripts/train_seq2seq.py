@@ -198,10 +198,11 @@ def train(encoder, decoder, n_iters, print_every=100, plot_every=10, learning_ra
         print ("Stopped")
 
     showPlot(plot_losses)
-    torch.save(encoder, "models/seq2seq/encoder.pt")
-    torch.save(decoder, "models/seq2seq/decoder.pt")
+    torch.save(encoder, "models/seq2seq/%d/encoder.pt" % model_idx)
+    torch.save(decoder, "models/seq2seq/%d/decoder.pt" % model_idx)
 
 if __name__ == "__main__":
+    model_idx = 3
     data = np.load('./data/train16.npy')
     sequences = np.loadtxt('./data/TrainSequences.txt')
 
